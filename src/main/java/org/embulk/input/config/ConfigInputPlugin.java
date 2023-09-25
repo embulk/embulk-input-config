@@ -17,6 +17,7 @@
 package org.embulk.input.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -42,7 +43,7 @@ import org.embulk.util.config.Task;
 import org.embulk.util.config.units.ColumnConfig;
 import org.embulk.util.config.units.SchemaConfig;
 import org.embulk.util.json.JsonParseException;
-import org.embulk.util.json.JsonParser;
+import org.embulk.util.json.JsonValueParser;
 import org.embulk.util.timestamp.TimestampFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,7 +119,7 @@ public class ConfigInputPlugin implements InputPlugin {
         final PluginTask task = CONFIG_MAPPER_FACTORY.createTaskMapper().map(taskSource, PluginTask.class);
         final List<List<JsonNode>> taskValues = task.getValues().get(taskIndex);
         final TimestampFormatter[] timestampFormatters = newTimestampColumnFormatters(task, task.getSchemaConfig());
-        final JsonParser jsonParser = new JsonParser();
+        final JsonValueParser.Builder jsonParserBuilder = JsonValueParser.builder();
 
         try (final PageBuilder pageBuilder = getPageBuilder(Exec.getBufferAllocator(), schema, output)) {
             for (final List<JsonNode> rowValues : taskValues) {
@@ -181,8 +182,10 @@ public class ConfigInputPlugin implements InputPlugin {
                                 pageBuilder.setNull(column);
                             } else {
                                 try {
-                                    pageBuilder.setJson(column, jsonParser.parse(value.toString()));
-                                } catch (JsonParseException ex) {
+                                    pageBuilder.setJson(column, jsonParserBuilder.build(value.toString()).readJsonValue());
+                                } catch (final JsonParseException ex) {
+                                    throw new DataException(ex);
+                                } catch (final IOException ex) {
                                     throw new DataException(ex);
                                 }
                             }
