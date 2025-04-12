@@ -15,7 +15,7 @@ jackson = "2.16.2"
 
 embulk-util-file = "0.1.5"
 embulk-util-json = "0.5.0"
-embulk-util-timestamp = "0.3.0"
+embulk-util-timestamp = "0.3.1"
 
 checkstyle = "9.3"
 
